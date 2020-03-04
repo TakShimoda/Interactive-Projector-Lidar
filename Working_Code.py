@@ -60,7 +60,8 @@ def Sph2Cart(ang, r):                               #Convert spherical to cartes
     x = r*sin(radians(ang))
     return x, y
 
-def consumer(queue):                
+def consumer(queue):
+    height, width = m.size()                
     while not queue.empty():                                                    #Continue while queue is not empty
         Data = queue.get()                                                      #Get the array from the queue
         #print(Data)
@@ -85,7 +86,7 @@ def consumer(queue):
             return
         else:
             i = Intensity.index(max(Intensity))                                 #If Data2 not empty, pick the maximum intensity
-            m.moveTo(x[i]*3840/1000, y[i]*2160/750, duration = 0.0001)           #Move mouse to point of max intensity
+            m.moveTo(x[i]*width/1000, y[i]*height/750, duration = 0.0001)           #Move mouse to point of max intensity
             print(x[i],y[i])
 
 def producer(queue):
@@ -119,13 +120,9 @@ def producer(queue):
 
 #--------------------MAIN FUNCTION----------------------------------------
 if __name__ == '__main__':
-    # window = Tk()
-    # mygui = My_GUI(window)
     mygui = My_GUI()
     pipeline = queue.Queue()                                                        #Initialize the queue, size as large as computer memory
     while (ser.in_waiting>0):                                                       #While serial buffer is not empty
-        # window.update_idletasks()
-        # window.update()
         mygui.update_idletasks()
         mygui.update()
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:      #Create two threads, join both afterwards
