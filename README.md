@@ -6,4 +6,4 @@ Two main codes are the Lidar processing code and code to generate the GUI.
 
 Working_code.py works to read live data from Lidar and control the mouse.
 
-My_GUI.py contains the module for the GUI.
+MyGUI.py contains the module for the GUI.
