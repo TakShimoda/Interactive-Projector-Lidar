@@ -119,12 +119,15 @@ def producer(queue):
 
 #--------------------MAIN FUNCTION----------------------------------------
 if __name__ == '__main__':
-    window = Tk()
-    mygui = My_GUI(window)
+    # window = Tk()
+    # mygui = My_GUI(window)
+    mygui = My_GUI()
     pipeline = queue.Queue()                                                        #Initialize the queue, size as large as computer memory
     while (ser.in_waiting>0):                                                       #While serial buffer is not empty
-        window.update_idletasks()
-        window.update()
+        # window.update_idletasks()
+        # window.update()
+        mygui.update_idletasks()
+        mygui.update()
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:      #Create two threads, join both afterwards
             executor.submit(producer, pipeline)                                     #Create producer, pass the queue object
             executor.submit(consumer, pipeline)                                     #Create consumer, pass the queue object
