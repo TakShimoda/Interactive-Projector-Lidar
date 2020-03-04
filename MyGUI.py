@@ -41,11 +41,11 @@ class My_GUI(Tk):
         self.ExitButton = Button(master = self.frame_e, text="Exit", command=self.ClickToExit, height = 3, width = 8, relief = RAISED, borderwidth = 5)
         self.ExitButton.pack(padx = px, pady = py)
 
-        self.Up = Button(master = self.frame_b, text="Up", command=self.Up, height = 3, width = 8, relief = RAISED, borderwidth = 5)
-        self.Up.pack(padx = px, pady = py)
+        self.UpButton = Button(master = self.frame_b, text="Up", command=self.Up, height = 3, width = 8, relief = RAISED, borderwidth = 5)
+        self.UpButton.pack(padx = px, pady = py)
 
-        self.Down = Button(master = self.frame_h, text="Down", command=self.Down, height = 3, width = 8, relief = RAISED, borderwidth = 5)
-        self.Down.pack(padx = px, pady = py)
+        self.DownButton = Button(master = self.frame_h, text="Down", command=self.Down, height = 3, width = 8, relief = RAISED, borderwidth = 5)
+        self.DownButton.pack(padx = px, pady = py)
 
         self.KeyButton = Button(master = self.frame_a, text="Keyboard", command=self.KeyBoard, height = 3, width = 8, relief = RAISED, borderwidth = 5)
         self.KeyButton.pack(padx = px, pady = py)
@@ -76,7 +76,7 @@ class My_GUI(Tk):
     def ClickToExit(self): #random function so far, when a button with this command is pressed, exits the program
         exit()
 
-#Rough prototype
+#Rough prototype: ignore, delete if you wish
 class My_GUI2:
     def __init__(self, window):
         window.title("Apex Solutions")
