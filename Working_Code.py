@@ -13,6 +13,7 @@ Ang = numpy.zeros(88)
 Dist = numpy.zeros(88)
 Ity = numpy.zeros(88)
 f = open('Data.csv', 'w')
+print(m.size())
 
 #-----------------Define Functions
 def RearrangeData(data):
@@ -56,12 +57,13 @@ def DecimaltoBinary(data):
     return ang, dist, it
 
 def Sph2Cart(ang, r):                               #Convert spherical to cartesian coordinates
-    x = r*cos(radians(ang)) 
-    y = r*sin(radians(ang))
+    offset = 4*pi/180
+    x = r*cos(radians(ang)-offset) 
+    y = r*sin(radians(ang)-offset)
     return x, y
 
-def consumer(queue, event):
-    height, width = m.size()              
+def consumer(queue, timqequeue, event):
+    width, height = m.size()              
     while not queue.empty() or not event.isset():                              #Continue while queue is not empty
         Data = queue.get()                                                      #Get the array from the queue
         x = []
@@ -74,7 +76,7 @@ def consumer(queue, event):
         ity = [i[2] for i in Data]
         Data1 = list(zip(x, y, ity))                                            #New array: x, y, and intensities
         for i in range(0,88):                                                   #Check all 88 points
-            if ((x[i]<1500) & (y[i]<1125)&(ity[i]>3)):                           #If point within screen and intensity is greater than 15
+            if ((x[i]<1940) & (y[i]<1060)&(ity[i]>5)):                           #If point within screen and intensity is greater than 15
                 Data2 += [Data1[i]]                                             #Place inside a new array Data2  
             else:
                 pass
@@ -84,9 +86,15 @@ def consumer(queue, event):
         if (len(Data2)==0):                                                     #If Data2 is empty, do nothing
             return
         else:
+            t = timequeue.get()
+            if (time.time() - t) < 0.2:                                         #Don't click more than once per 0.2 second
+                timequeue.put_nowait(time.time())  
+                continue
             i = Intensity.index(max(Intensity))                                 #If Data2 not empty, pick the maximum intensity
-            m.click(x[i]*width/1500, height-350-(y[i]*height/1125), duration = 0.001)           #Move mouse to point of max intensity
-            print(x[i],y[i])
+            #Make another queue for coordinate to place and read for drag
+            m.click(x[i]*width/1940, height-(y[i]*height/990), duration = 0.001)
+            timequeue.put_nowait(time.time())                                   #Stamp the time here           
+            print(x[i]*width/1960,y[i]*height/990)
     event.clear()
 
 def producer(queue, event):
@@ -111,7 +119,7 @@ def producer(queue, event):
         count += 4                                      #Increment the count by 4
         if count >= 88:
             #count = 0                                  #Reset count to 0
-            if ((max(Ity) > 6) & (max(Ity) < 300)):     #If maximum intensity is greater than 30 and less than 500(object detected, valid intensity)
+            if ((max(Ity) > 10) & (max(Ity) < 300)):     #If maximum intensity is greater than 30 and less than 500(object detected, valid intensity)
                 Data = list(zip(Ang,Dist,Ity))          #[(Ang[0],Dist[0],Ity[0]),(Ang[1],Dist[1],Ity[1]), ..] -> an array of 88 tuples, each sized 3
                 queue.put_nowait(Data)                  #Place the above array inside the queue
             else:                                               
@@ -122,9 +130,11 @@ if __name__ == '__main__':
     mygui = My_GUI()
     event = threading.Event()
     pipeline = queue.Queue()                                                        #Initialize the queue, size as large as computer memory
+    timequeue = queue.Queue()
+    timequeue.put(time.time())                                                      #Initialize first instance of time
     while (ser.in_waiting>0):                                                       #While serial buffer is not empty
         mygui.update_idletasks()
         mygui.update()
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:      #Create two threads, join both afterwards
-            executor.submit(producer, pipeline, event)                                     #Create producer, pass the queue object
-            executor.submit(consumer, pipeline, event)                                     #Create consumer, pass the queue object
+            executor.submit(producer, pipeline, event)                              #Create producer, pass the queue object
+            executor.submit(consumer, pipeline, timequeue, event)                   #Create consumer, pass the queue object
