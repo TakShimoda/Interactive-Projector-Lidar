@@ -8,5 +8,7 @@ Working_code.py works to read live data from Lidar and control the mouse.
 
 MyGUI.py contains the module for the GUI.
 
+Macro-enabled powerpoint presentation also included.
+
 
 Apex Solution 
