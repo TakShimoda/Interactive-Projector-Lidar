@@ -1,6 +1,6 @@
 #Producer and consumer are not in while loops
 #Some latency still relevant
-import serial, time, numpy, concurrent.futures, queue
+import serial, time, numpy, concurrent.futures, queue, threading
 import pyautogui as m
 from math import *
 from tkinter import *
@@ -56,15 +56,14 @@ def DecimaltoBinary(data):
     return ang, dist, it
 
 def Sph2Cart(ang, r):                               #Convert spherical to cartesian coordinates
-    y = r*cos(radians(ang)) 
-    x = r*sin(radians(ang))
+    x = r*cos(radians(ang)) 
+    y = r*sin(radians(ang))
     return x, y
 
-def consumer(queue):
-    height, width = m.size()                
-    while not queue.empty():                                                    #Continue while queue is not empty
+def consumer(queue, event):
+    height, width = m.size()              
+    while not queue.empty() or not event.isset():                              #Continue while queue is not empty
         Data = queue.get()                                                      #Get the array from the queue
-        #print(Data)
         x = []
         y = []
         Data1 = []
@@ -75,7 +74,7 @@ def consumer(queue):
         ity = [i[2] for i in Data]
         Data1 = list(zip(x, y, ity))                                            #New array: x, y, and intensities
         for i in range(0,88):                                                   #Check all 88 points
-            if ((x[i]<1000) & (y[i]<750)&(ity[i]>10)):                           #If point within screen and intensity is greater than 15
+            if ((x[i]<1500) & (y[i]<1125)&(ity[i]>3)):                           #If point within screen and intensity is greater than 15
                 Data2 += [Data1[i]]                                             #Place inside a new array Data2  
             else:
                 pass
@@ -86,10 +85,11 @@ def consumer(queue):
             return
         else:
             i = Intensity.index(max(Intensity))                                 #If Data2 not empty, pick the maximum intensity
-            m.moveTo(x[i]*width/1000, y[i]*height/750, duration = 0.0001)           #Move mouse to point of max intensity
+            m.click(x[i]*width/1500, height-350-(y[i]*height/1125), duration = 0.001)           #Move mouse to point of max intensity
             print(x[i],y[i])
+    event.clear()
 
-def producer(queue):
+def producer(queue, event):
     count = 0
     ser.reset_input_buffer()
     while (count <89):
@@ -110,21 +110,21 @@ def producer(queue):
         Ity[count:count+4] = intense                    #Assign the 4 values from intense to the larger Ity array
         count += 4                                      #Increment the count by 4
         if count >= 88:
-            count = 0                                   #Reset count to 0
-            #print(Ity)
-            if ((max(Ity) > 10) & (max(Ity) < 500)):    #If maximum intensity is greater than 30 and less than 500(object detected, valid intensity)
+            #count = 0                                  #Reset count to 0
+            if ((max(Ity) > 6) & (max(Ity) < 300)):     #If maximum intensity is greater than 30 and less than 500(object detected, valid intensity)
                 Data = list(zip(Ang,Dist,Ity))          #[(Ang[0],Dist[0],Ity[0]),(Ang[1],Dist[1],Ity[1]), ..] -> an array of 88 tuples, each sized 3
                 queue.put_nowait(Data)                  #Place the above array inside the queue
             else:                                               
                 pass                                    #No intensities in this range? Pass
-
+            event.set()
 #--------------------MAIN FUNCTION----------------------------------------
 if __name__ == '__main__':
     mygui = My_GUI()
+    event = threading.Event()
     pipeline = queue.Queue()                                                        #Initialize the queue, size as large as computer memory
     while (ser.in_waiting>0):                                                       #While serial buffer is not empty
         mygui.update_idletasks()
         mygui.update()
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:      #Create two threads, join both afterwards
-            executor.submit(producer, pipeline)                                     #Create producer, pass the queue object
-            executor.submit(consumer, pipeline)                                     #Create consumer, pass the queue object
+            executor.submit(producer, pipeline, event)                                     #Create producer, pass the queue object
+            executor.submit(consumer, pipeline, event)                                     #Create consumer, pass the queue object
