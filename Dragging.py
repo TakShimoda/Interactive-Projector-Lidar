@@ -56,8 +56,8 @@ def DecimaltoBinary(data):
 
 def Sph2Cart(ang, r):                               #Convert spherical to cartesian coordinates
     offset = 0#4*pi/180
-    x = r*sin(radians(ang)-offset) 
-    y = r*cos(radians(ang)-offset)
+    x = r*cos(radians(ang)-offset) 
+    y = r*sin(radians(ang)-offset)
     return x, y
 
 def consumer(queue, timqequeue, cqueue, event):
@@ -74,7 +74,7 @@ def consumer(queue, timqequeue, cqueue, event):
         ity = [i[2] for i in Data]
         Data1 = list(zip(x, y, ity))                                            #New array: x, y, and intensities
         for i in range(0,88):                                                   #Check all 88 points
-            if ((x[i]<1000) & (y[i]<750)&(ity[i]>5)):                           #If point within screen and intensity is greater than 15
+            if ((x[i]<1800) & (y[i]<950)&(ity[i]>3)):                           #If point within screen and intensity is greater than 15
                 Data2 += [Data1[i]]                                             #Place inside a new array Data2  
             else:
                 pass
@@ -87,14 +87,17 @@ def consumer(queue, timqequeue, cqueue, event):
             t = timequeue.get()
             prev = cqueue.get()
             i = Intensity.index(max(Intensity))                                 #If Data2 not empty, pick the maximum intensity
-            cur = [x[i], y[i]]
-            if ((time.time() - t) < 0.2) and (numpy.linalg.norm([cur[1]-prev[1],cur[0]-prev[0]]) < 30):                                         
+            cur = [x[i], y[i]]                                                  #Current position
+            normdist = numpy.linalg.norm([cur[1]-prev[1],cur[0]-prev[0]])       #The norm between previous/current position
+            if ((time.time() - t) < 0.2) and (normdist < 20):                                         
                 timequeue.put_nowait(time.time())
                 cqueue.put_nowait([x[i], y[i]])  
-                m.dragTo(x[i]*width/1000, y[i]*height/750, tween = m.easeInCirc, duration = 0.05)
-                #print(cur[0], cur[1])
+                #m.dragRel((x[i]-prev[1])*(width/1800), ((prev[0]-y[i])*height/1050), tween = m.easeInCirc, duration = 0.05)
+                #print(abs((x[i]-prev[1])*width/1800), abs(height-((prev[0]-y[i])*height/1050)))
+                print(x[i]*width/1800, (height - y[i]*height/1150))
+                m.dragTo(x[i]*width/1800, (height - y[i]*height/1150), tween = m.easeInCirc, duration = 0.05)
             else:
-                #m.moveTo(x[i]*width/500, height-(y[i]*height/375), duration = 0.001)
+                #m.moveTo(x[i]*width/1800, height-(y[i]*height/1150), duration = 0.001)
                 timequeue.put_nowait(time.time())                                   #Stamp the time here
                 cqueue.put_nowait([x[i],y[i]])           
                 #print(x[i]*width/1800,y[i]*height/1000)
@@ -122,7 +125,7 @@ def producer(queue, event):
         count += 4                                      #Increment the count by 4
         if count >= 88:
             #count = 0                                  #Reset count to 0
-            if ((max(Ity) > 10) & (max(Ity) < 300)):     #If maximum intensity is greater than 30 and less than 500(object detected, valid intensity)
+            if ((max(Ity) > 10) & (max(Ity) < 300)):    #If maximum intensity is greater than 30 and less than 500(object detected, valid intensity)
                 Data = list(zip(Ang,Dist,Ity))          #[(Ang[0],Dist[0],Ity[0]),(Ang[1],Dist[1],Ity[1]), ..] -> an array of 88 tuples, each sized 3
                 queue.put_nowait(Data)                  #Place the above array inside the queue
             else:                                               
@@ -141,8 +144,8 @@ if __name__ == '__main__':
     yi = (xi*375)/2160
     cqueue.put([xi, yi])
     while (ser.in_waiting>0):                                                       #While serial buffer is not empty
-        mygui.update_idletasks()
-        mygui.update()
+        # mygui.update_idletasks()
+        # mygui.update()
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:      #Create two threads, join both afterwards
             executor.submit(producer, pipeline, event)                              #Create producer, pass the queue object
             executor.submit(consumer, pipeline, timequeue, cqueue, event)           #Create consumer, pass the queue object
