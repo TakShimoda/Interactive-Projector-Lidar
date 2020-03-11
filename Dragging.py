@@ -74,7 +74,7 @@ def consumer(queue, timqequeue, cqueue, event):
         ity = [i[2] for i in Data]
         Data1 = list(zip(x, y, ity))                                            #New array: x, y, and intensities
         for i in range(0,88):                                                   #Check all 88 points
-            if ((x[i]<1800) & (y[i]<950)&(ity[i]>3)):                           #If point within screen and intensity is greater than 15
+            if ((x[i]<1900) & (y[i]<1050)&(ity[i]>3)):                           #If point within screen and intensity is greater than 15
                 Data2 += [Data1[i]]                                             #Place inside a new array Data2  
             else:
                 pass
@@ -89,18 +89,23 @@ def consumer(queue, timqequeue, cqueue, event):
             i = Intensity.index(max(Intensity))                                 #If Data2 not empty, pick the maximum intensity
             cur = [x[i], y[i]]                                                  #Current position
             normdist = numpy.linalg.norm([cur[1]-prev[1],cur[0]-prev[0]])       #The norm between previous/current position
-            if ((time.time() - t) < 0.2) and (normdist < 20):                                         
+            if ((time.time() - t) < 0.25) and (normdist < 25):                                         
                 timequeue.put_nowait(time.time())
                 cqueue.put_nowait([x[i], y[i]])  
                 #m.dragRel((x[i]-prev[1])*(width/1800), ((prev[0]-y[i])*height/1050), tween = m.easeInCirc, duration = 0.05)
                 #print(abs((x[i]-prev[1])*width/1800), abs(height-((prev[0]-y[i])*height/1050)))
-                print(x[i]*width/1800, (height - y[i]*height/1150))
-                m.dragTo(x[i]*width/1800, (height - y[i]*height/1150), tween = m.easeInCirc, duration = 0.05)
-            else:
-                #m.moveTo(x[i]*width/1800, height-(y[i]*height/1150), duration = 0.001)
+                #print(x[i]*width/1900, (height - y[i]*height/1050))
+                m.dragTo(x[i]*width/1900, (height - y[i]*height/1050), tween = m.easeInCirc, duration = 0.05)
+            elif (time.time() - t > 0.2):
+                m.click(x[i]*width/1900, height-(y[i]*height/1050), duration = 0.001)
                 timequeue.put_nowait(time.time())                                   #Stamp the time here
-                cqueue.put_nowait([x[i],y[i]])           
+                cqueue.put_nowait([x[i],y[i]])
+                #print("tap")           
                 #print(x[i]*width/1800,y[i]*height/1000)
+            else:
+                timequeue.put_nowait(time.time())
+                cqueue.put_nowait([[xi],y[i]])
+                #print("nothing")
     event.clear()
 
 def producer(queue, event):
@@ -125,7 +130,7 @@ def producer(queue, event):
         count += 4                                      #Increment the count by 4
         if count >= 88:
             #count = 0                                  #Reset count to 0
-            if ((max(Ity) > 10) & (max(Ity) < 300)):    #If maximum intensity is greater than 30 and less than 500(object detected, valid intensity)
+            if ((max(Ity) > 5) & (max(Ity) < 300)):    #If maximum intensity is greater than 30 and less than 500(object detected, valid intensity)
                 Data = list(zip(Ang,Dist,Ity))          #[(Ang[0],Dist[0],Ity[0]),(Ang[1],Dist[1],Ity[1]), ..] -> an array of 88 tuples, each sized 3
                 queue.put_nowait(Data)                  #Place the above array inside the queue
             else:                                               
