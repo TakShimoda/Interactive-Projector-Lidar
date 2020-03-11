@@ -89,7 +89,7 @@ def consumer(queue, timqequeue, cqueue, event):
             i = Intensity.index(max(Intensity))                                 #If Data2 not empty, pick the maximum intensity
             cur = [x[i], y[i]]                                                  #Current position
             normdist = numpy.linalg.norm([cur[1]-prev[1],cur[0]-prev[0]])       #The norm between previous/current position
-            if ((time.time() - t) < 0.25) and (normdist < 25):                                         
+            if ((time.time() - t) < 0.2) and (normdist < 30):                                         
                 timequeue.put_nowait(time.time())
                 cqueue.put_nowait([x[i], y[i]])  
                 #m.dragRel((x[i]-prev[1])*(width/1800), ((prev[0]-y[i])*height/1050), tween = m.easeInCirc, duration = 0.05)
@@ -145,12 +145,12 @@ if __name__ == '__main__':
     cqueue = queue.Queue()
     timequeue.put(time.time())                                                      #Initialize first instance of time
     [xi, yi] = m.position()                                                         #Initial screen positions
-    xi = (xi*500)/3840
-    yi = (xi*375)/2160
+    xi = (xi*1900)/3840
+    yi = (xi*1050)/2160
     cqueue.put([xi, yi])
     while (ser.in_waiting>0):                                                       #While serial buffer is not empty
-        # mygui.update_idletasks()
-        # mygui.update()
+        mygui.update_idletasks()
+        mygui.update()
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:      #Create two threads, join both afterwards
             executor.submit(producer, pipeline, event)                              #Create producer, pass the queue object
             executor.submit(consumer, pipeline, timequeue, cqueue, event)           #Create consumer, pass the queue object
