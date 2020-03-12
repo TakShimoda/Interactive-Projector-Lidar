@@ -1,4 +1,4 @@
-import pygame, random
+import pygame, random, time
 import win32api
 import win32con
 import win32gui
@@ -15,7 +15,7 @@ draw_on = False
 #draw_on = True
 last_pos = (0, 0)
 color = (0, 255, 0)
-radius = 3
+radius = 25
 
 hwnd = pygame.display.get_wm_info()["window"]
 win32gui.SetWindowLong(hwnd, win32con.GWL_EXSTYLE, win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE) | win32con.WS_EX_LAYERED)
@@ -40,6 +40,8 @@ while not done:
     #pygame.draw.rect(screen, dark_red, pygame.Rect(0, 0, 1600, 10))
     try:
         while True:
+            xd=(pygame.mouse.get_pressed())
+            print(xd)
             e = pygame.event.wait()
             if e.type == pygame.QUIT:
                 raise StopIteration
@@ -48,7 +50,13 @@ while not done:
                 pygame.draw.circle(screen, color, e.pos, radius)
                 draw_on = True
             if e.type == pygame.MOUSEBUTTONUP:
-                draw_on = False
+                    t = time.time()
+            try:
+                if (time.time() - t) > 1.0:
+                    draw_on = False
+                    t = None
+            except:
+                pass
             if e.type == pygame.MOUSEMOTION:
                 if draw_on:
                     pygame.draw.circle(screen, color, e.pos, radius)
