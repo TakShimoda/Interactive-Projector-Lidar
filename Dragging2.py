@@ -93,18 +93,11 @@ def consumer(queue, timqequeue, cqueue, mqueue, event):
             timequeue.put_nowait(time.time())                                   #Stamp the time here
             cqueue.put_nowait([x[i],y[i]])
             normdist = numpy.linalg.norm([cur[1]-prev[1],cur[0]-prev[0]])       #The norm between previous/current position
-            Mouse = [cur[0], cur[1], 'd']
-            print(cur)
             if 1:#((time.time() - t) < 0.2):# and (normdist < 30):                                         
                 Mouse = [cur[0], cur[1], 'd']
-                #m.dragTo(x[i]*width/1900, (height - y[i]*height/1050), tween = m.easeInCirc, duration = 0.05)
-                #print("drag")
             else:
             #elif (time.time() - t > 0.2) and (normdist > 20):
                 Mouse = [cur[0], cur[1], 't']
-                #m.click(x[i]*width/1900, height-(y[i]*height/1050), duration = 0.001)
-                #print("tap")           
-                #print(x[i]*width/1800,y[i]*height/1000)
            # else:
                 print("tap")
             mqueue.put_nowait(Mouse)
@@ -138,18 +131,20 @@ def producer(queue, event):
             else:                                               
                 pass                                    #No intensities in this range? Pass
             event.set()
-def mouseEvents(mqueue):
+def mouseEvents(mqueue, pastqueue):
     width, height = m.size()
     while not mqueue.empty():
-        MouseCmd = mqueue.get()
-        if MouseCmd[2] == 'd':
-            m.dragTo(MouseCmd[0]*width/1900, (height - MouseCmd[1]*height/1050), tween = m.easeInCirc, duration = 0.05)
-        elif MouseCmd[2] == 't':
-            m.click(MouseCmd[0]*width/1900, height-(MouseCmd[1]*height/1050), duration = 0.001)
+        Now = mqueue.get()
+        Prev = pastqueue.get()
+        if Now[2] == 'd':
+            print(((Now[0]-Prev[0])*width/1900), (Prev[1]-Now[1])*height/1050)
+            m.dragRel(((Now[0]-Prev[0])*width/1900), (Prev[1]-Now[1])*height/1050, duration = 0.03)
+            pastqueue.put_nowait(Now)
+            #m.dragTo(Now[0]*width/1900, (height - Now[1]*height/1050), tween = m.easeInCirc, duration = 0.05)
+        elif Now[2] == 't':
+            m.click(Now[0]*width/1900, height-(Now[1]*height/1050), duration = 0.001)
         else:
             pass
-
-
 
 #--------------------MAIN FUNCTION----------------------------------------
 if __name__ == '__main__':
@@ -158,16 +153,18 @@ if __name__ == '__main__':
     pipeline = queue.Queue()                                                        #Initialize the queue, size as large as computer memory
     timequeue = queue.Queue()
     cqueue = queue.Queue()
+    cqueue2 = queue.Queue()
     mqueue = queue.Queue()
     timequeue.put(time.time())                                                      #Initialize first instance of time
     [xi, yi] = m.position()                                                         #Initial screen positions
     xi = (xi*1900)/3840
     yi = (xi*1050)/2160
     cqueue.put([xi, yi])
+    cqueue2.put([xi, yi])
     while (ser.in_waiting>0):                                                       #While serial buffer is not empty
         mygui.update_idletasks()
         mygui.update()
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:      #Create two threads, join both afterwards
             executor.submit(producer, pipeline, event)                              #Create producer, pass the queue object
             executor.submit(consumer, pipeline, timequeue, cqueue, mqueue, event)           #Create consumer, pass the queue object
-            executor.submit(mouseEvents, mqueue)
+            executor.submit(mouseEvents, mqueue, cqueue2)
