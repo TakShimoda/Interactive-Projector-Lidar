@@ -1,6 +1,6 @@
 #3 threads
 
-import serial, time, numpy, concurrent.futures, queue, threading
+import serial, time, numpy, concurrent.futures, queue, threading, csv
 import pyautogui as m
 from math import *
 from tkinter import *
@@ -12,8 +12,9 @@ time.sleep(2)
 Ang = numpy.zeros(88)
 Dist = numpy.zeros(88)
 Ity = numpy.zeros(88)
-f = open('Data.csv', 'w')
 print(m.size())
+
+f = open('Data.csv', 'w', newline='')
 
 #-----------------Define Functions
 def RearrangeData(data):
@@ -65,7 +66,7 @@ def Sph2Cart(ang, r):                               #Convert spherical to cartes
 def consumer(queue, timqequeue, cqueue, mqueue, event):
     width, height = m.size()              
     while not queue.empty() or not event.isset():                              #Continue while queue is not empty
-        Data = queue.get()                                                      #Get the array from the queue
+        Data = queue.get()                                                     #Get the array from the queue
         x = []
         y = []
         Data1 = []
@@ -93,13 +94,11 @@ def consumer(queue, timqequeue, cqueue, mqueue, event):
             timequeue.put_nowait(time.time())                                   #Stamp the time here
             cqueue.put_nowait([x[i],y[i]])
             normdist = numpy.linalg.norm([cur[1]-prev[1],cur[0]-prev[0]])       #The norm between previous/current position
-            if 1:#((time.time() - t) < 0.2):# and (normdist < 30):                                         
+            if ((time.time() - t) < 0.35) or (normdist < 30):                                         
                 Mouse = [cur[0], cur[1], 'd']
             else:
             #elif (time.time() - t > 0.2) and (normdist > 20):
                 Mouse = [cur[0], cur[1], 't']
-           # else:
-                print("tap")
             mqueue.put_nowait(Mouse)
     event.clear()
 
@@ -137,14 +136,19 @@ def mouseEvents(mqueue, pastqueue):
         Now = mqueue.get()
         Prev = pastqueue.get()
         if Now[2] == 'd':
-            print(((Now[0]-Prev[0])*width/1900), (Prev[1]-Now[1])*height/1050)
-            m.dragRel(((Now[0]-Prev[0])*width/1900), (Prev[1]-Now[1])*height/1050, duration = 0.03)
+            #print(((Now[0]-Prev[0])*width/1900), (Prev[1]-Now[1])*height/1050)
+            m.dragRel(((Now[0]-Prev[0])*width/5900), (Prev[1]-Now[1])*height/1068, duration = 0.03)
             pastqueue.put_nowait(Now)
             #m.dragTo(Now[0]*width/1900, (height - Now[1]*height/1050), tween = m.easeInCirc, duration = 0.05)
         elif Now[2] == 't':
-            m.click(Now[0]*width/1900, height-(Now[1]*height/1050), duration = 0.001)
+            m.click(Now[0]*width/1900, height-(Now[1]*height/1068), duration = 0.001)
+            pastqueue.put_nowait(Now)
         else:
             pass
+        writer = csv.writer(f, delimiter = ',')
+        writer.writerow(Now[0:2])
+        #f.write(Now[0:2])
+        #f.write('\n')
 
 #--------------------MAIN FUNCTION----------------------------------------
 if __name__ == '__main__':
@@ -158,7 +162,7 @@ if __name__ == '__main__':
     timequeue.put(time.time())                                                      #Initialize first instance of time
     [xi, yi] = m.position()                                                         #Initial screen positions
     xi = (xi*1900)/3840
-    yi = (xi*1050)/2160
+    yi = (xi*1068)/2160
     cqueue.put([xi, yi])
     cqueue2.put([xi, yi])
     while (ser.in_waiting>0):                                                       #While serial buffer is not empty
