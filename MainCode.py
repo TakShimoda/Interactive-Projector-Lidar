@@ -1,10 +1,12 @@
 #Final Code
 
-import serial, time, numpy, concurrent.futures, queue, threading
+import serial, time, numpy, concurrent.futures, queue, threading, logging
 import pyautogui as m
 from math import *
 from tkinter import *
 from MyGUI import *
+
+logging.basicConfig(level = logging.DEBUG, format = '%(asctime)s - %(levelname)s - %(message)s'), filename = 'coordinates', filemode = 'w')
 
 #Initialize, define global variables
 ser = serial.Serial('COM8', baudrate = 115200,  timeout = 1)
@@ -101,6 +103,7 @@ def consumer(queue, mqueue, event):
                 Mouse = [cur[0], cur[1], 't']
             clock = time.time()
             mqueue.put_nowait(Mouse)
+            logging.debug(f'The position is x:{cur[0]}, y:{cur[1]}.')
     event.clear()
 
 def producer(queue, event):
