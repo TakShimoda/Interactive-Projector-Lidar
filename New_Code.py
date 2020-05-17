@@ -1,5 +1,4 @@
 import serial, re, logging, time, concurrent.futures, queue, threading, numpy, sys
-import itertools as it
 import pyautogui as m
 from math import *
 from tkinter import *
